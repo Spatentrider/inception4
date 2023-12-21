@@ -1,0 +1,69 @@
+version: "3"
+
+services:
+  # MariaDB service configuration
+  mariadb:
+    build: ./requirements/mariadb/
+    container_name: mariadb
+    ports:
+      - "3306:3306"  # Map port 3306 inside the container to port 3306 on the host
+    volumes:
+      - "mariadb:/var/lib/mysql"  # Mount the mariadb volume to persist data
+    networks:
+      - inception  # Connect to the 'inception' network
+    restart: always
+    env_file: .env  # Load environment variables from the .env file
+
+  # WordPress service configuration
+  wordpress:
+    build: ./requirements/wordpress/
+    container_name: wordpress
+    ports:
+      - "9000:9000"  # Map port 9000 inside the container to port 9000 on the host
+    volumes:
+      - wordpress:/var/www/html  # Mount the wordpress volume to persist data
+    depends_on:
+      - mariadb  # Wait for the mariadb service to start
+    networks:
+      - inception  # Connect to the 'inception' network
+    restart: always
+    env_file: .env  # Load environment variables from the .env file
+
+  # Nginx service configuration
+  nginx:
+    build: ./requirements/nginx/
+    container_name: nginx
+    ports:
+      - "443:443"  # Map port 443 inside the container to port 443 on the host
+    volumes:
+      - wordpress:/var/www/html  # Mount the wordpress volume to provide content
+    depends_on:
+      - wordpress  # Wait for the wordpress service to start
+    networks:
+      - inception  # Connect to the 'inception' network
+    restart: always
+    env_file: .env  # Load environment variables from the .env file
+
+# Define a custom network called 'inception'
+networks:
+  inception:
+    name: inception
+
+# Define named volumes for persistent data storage
+volumes:
+  mariadb:
+    name: mariadb
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/$USERNAME/data/mariadb  # Mount host directory to the volume
+
+  wordpress:
+    name: wordpress
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/$USERNAME/data/wordpress  # Mount host directory to the volume
+
